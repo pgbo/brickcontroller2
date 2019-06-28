@@ -33,6 +33,7 @@ namespace BrickController2.UI.ViewModels
         private int _maxOutputPercent;
         private int _axisDeadZonePercent;
         private int _maxServoAngle;
+        private int _stepperPercent;
 
         public ControllerActionPageViewModel(
             INavigationService navigationService,
@@ -65,6 +66,7 @@ namespace BrickController2.UI.ViewModels
                 AxisCharacteristic = ControllerAction.AxisCharacteristic;
                 MaxOutputPercent = ControllerAction.MaxOutputPercent;
                 AxisDeadZonePercent = ControllerAction.AxisDeadZonePercent;
+                StepperPercent = ControllerAction.StepperPercent;
             }
             else
             {
@@ -79,6 +81,7 @@ namespace BrickController2.UI.ViewModels
                 AxisCharacteristic = ControllerAxisCharacteristic.Linear;
                 MaxOutputPercent = 100;
                 AxisDeadZonePercent = 0;
+                StepperPercent = 10;
             }
 
             SaveControllerActionCommand = new SafeCommand(async () => await SaveControllerActionAsync(), () => SelectedDevice != null);
@@ -161,6 +164,12 @@ namespace BrickController2.UI.ViewModels
             set { _axisDeadZonePercent = value; RaisePropertyChanged(); }
         }
 
+        public int StepperPercent
+        {
+            get { return _stepperPercent; }
+            set { _stepperPercent = value; RaisePropertyChanged(); }
+        }
+
         public ICommand SaveControllerActionCommand { get; }
         public ICommand DeleteControllerActionCommand { get; }
         public ICommand OpenDeviceDetailsCommand { get; }
@@ -196,11 +205,31 @@ namespace BrickController2.UI.ViewModels
                 {
                     if (ControllerAction != null)
                     {
-                        await _creationManager.UpdateControllerActionAsync(ControllerAction, SelectedDevice.Id, Channel, IsInvert, ButtonType, AxisType, AxisCharacteristic, MaxOutputPercent, AxisDeadZonePercent);
+                        await _creationManager.UpdateControllerActionAsync(
+                            ControllerAction,
+                            SelectedDevice.Id,
+                            Channel,
+                            IsInvert,
+                            ButtonType,
+                            AxisType,
+                            AxisCharacteristic,
+                            MaxOutputPercent,
+                            AxisDeadZonePercent,
+                            StepperPercent);
                     }
                     else
                     {
-                        await _creationManager.AddOrUpdateControllerActionAsync(ControllerEvent, SelectedDevice.Id, Channel, IsInvert, ButtonType, AxisType, AxisCharacteristic, MaxOutputPercent, AxisDeadZonePercent);
+                        await _creationManager.AddOrUpdateControllerActionAsync(
+                            ControllerEvent,
+                            SelectedDevice.Id,
+                            Channel,
+                            IsInvert,
+                            ButtonType,
+                            AxisType,
+                            AxisCharacteristic,
+                            MaxOutputPercent,
+                            AxisDeadZonePercent,
+                            StepperPercent);
                     }
                 },
                 Translate("Saving"));

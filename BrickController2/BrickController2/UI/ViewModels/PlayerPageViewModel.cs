@@ -331,10 +331,16 @@ namespace BrickController2.UI.ViewModels
 
                 case ControllerButtonType.Stop:
                     currentOutput = 0;
-
                     SetIsOutputDisabledForAxises(controllerAction, false);
                     ResetPreviousAxisOutputsForOutput(controllerAction);
+                    break;
 
+                case ControllerButtonType.Stepper:
+                    if (isPressed)
+                    {
+                        var step = controllerAction.StepperPercent * 0.01F;
+                        currentOutput = Math.Min(1, Math.Max(-1, previousButtonOutputs[0] + step));
+                    }
                     break;
             }
 
@@ -367,6 +373,7 @@ namespace BrickController2.UI.ViewModels
         {
             var previousAxisValue = GetPreviousAxisOutput(gameControllerEventCode, controllerAction);
 
+            // Process axis dead zone
             var axisDeadZone = controllerAction.AxisDeadZonePercent / 100F;
             if (axisDeadZone > 0)
             {
@@ -385,6 +392,7 @@ namespace BrickController2.UI.ViewModels
                 }
             }
 
+            // Process axis characteristic
             if (controllerAction.AxisCharacteristic == ControllerAxisCharacteristic.Exponential)
             {
                 // Cheat :)
@@ -403,6 +411,7 @@ namespace BrickController2.UI.ViewModels
                 }
             }
 
+            // Process axis types
             if (controllerAction.AxisType == ControllerAxisType.Train)
             {
                 if (GetIsOutputDisableForAxises(controllerAction))
@@ -451,6 +460,19 @@ namespace BrickController2.UI.ViewModels
                             }
                         }
                     }
+                }
+            }
+            else if (controllerAction.AxisType == ControllerAxisType.Stepper)
+            {
+                if (Math.Abs(axisValue) == 1 && !GetIsOutputDisableForAxises(controllerAction))
+                {
+                    var step = controllerAction.StepperPercent * 0.01F * axisValue;
+                    axisValue = Math.Min(1, Math.Max(-1, previousAxisValue + step));
+                    SetIsOutputDisabledForAxises(controllerAction, true);
+                }
+                else if (axisValue == 0)
+                {
+                    SetIsOutputDisabledForAxises(controllerAction, false);
                 }
             }
 

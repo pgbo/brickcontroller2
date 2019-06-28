@@ -131,7 +131,17 @@ namespace BrickController2.CreationManagement
             }
         }
 
-        public async Task<ControllerAction> AddOrUpdateControllerActionAsync(ControllerEvent controllerEvent, string deviceId, int channel, bool isInvert, ControllerButtonType buttonType, ControllerAxisType axisType, ControllerAxisCharacteristic axisCharacteristic, int maxOutputPercent, int axisDeadZonePercent)
+        public async Task<ControllerAction> AddOrUpdateControllerActionAsync(
+            ControllerEvent controllerEvent,
+            string deviceId,
+            int channel,
+            bool isInvert,
+            ControllerButtonType buttonType,
+            ControllerAxisType axisType,
+            ControllerAxisCharacteristic axisCharacteristic,
+            int maxOutputPercent,
+            int axisDeadZonePercent,
+            int stepperPercent)
         {
             using (await _asyncLock.LockAsync())
             {
@@ -144,6 +154,7 @@ namespace BrickController2.CreationManagement
                     controllerAction.AxisCharacteristic = axisCharacteristic;
                     controllerAction.MaxOutputPercent = maxOutputPercent;
                     controllerAction.AxisDeadZonePercent = axisDeadZonePercent;
+                    controllerAction.StepperPercent = stepperPercent;
                     await _creationRepository.UpdateControllerActionAsync(controllerAction);
                 }
                 else
@@ -157,7 +168,8 @@ namespace BrickController2.CreationManagement
                         AxisType = axisType,
                         AxisCharacteristic = axisCharacteristic,
                         MaxOutputPercent = maxOutputPercent,
-                        AxisDeadZonePercent = axisDeadZonePercent
+                        AxisDeadZonePercent = axisDeadZonePercent,
+                        StepperPercent = stepperPercent
                     };
                     await _creationRepository.InsertControllerActionAsync(controllerEvent, controllerAction);
                 }
@@ -176,7 +188,17 @@ namespace BrickController2.CreationManagement
             }
         }
 
-        public async Task UpdateControllerActionAsync(ControllerAction controllerAction, string deviceId, int channel, bool isInvert, ControllerButtonType buttonType, ControllerAxisType axisType, ControllerAxisCharacteristic axisCharacteristic, int maxOutputPercent, int axisDeadZonePercent)
+        public async Task UpdateControllerActionAsync(
+            ControllerAction controllerAction,
+            string deviceId,
+            int channel,
+            bool isInvert,
+            ControllerButtonType buttonType,
+            ControllerAxisType axisType,
+            ControllerAxisCharacteristic axisCharacteristic,
+            int maxOutputPercent,
+            int axisDeadZonePercent,
+            int stepperPercent)
         {
             using (await _asyncLock.LockAsync())
             {
@@ -196,6 +218,7 @@ namespace BrickController2.CreationManagement
                 controllerAction.AxisCharacteristic = axisCharacteristic;
                 controllerAction.MaxOutputPercent = maxOutputPercent;
                 controllerAction.AxisDeadZonePercent = axisDeadZonePercent;
+                controllerAction.StepperPercent = stepperPercent;
                 await _creationRepository.UpdateControllerActionAsync(controllerAction);
             }
         }

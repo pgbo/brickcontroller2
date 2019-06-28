@@ -7,6 +7,7 @@
     xmlns:creationManagement="clr-namespace:BrickController2.CreationManagement"
     xmlns:extensions="clr-namespace:BrickController2.UI.MarkupExtensions"
     xmlns:gameController="clr-namespace:BrickController2.PlatformServices.GameController"
+    xmlns:controllerManagement="clr-namespace:BrickController2.CreationManagement"
     xmlns:local="clr-namespace:BrickController2.UI.Pages"
     x:Class="BrickController2.UI.Pages.ControllerActionPage"
     Title="{extensions:Translate ControllerAction}">
@@ -176,6 +177,33 @@
                 </Grid>
 
                 <BoxView BackgroundColor="#E0E0E0" HeightRequest="1" VerticalOptions="Center" HorizontalOptions="Fill" Margin="5,8,5,8"/>
+
+                <!-- Stepper percent -->
+                <StackLayout Orientation="Vertical" IsVisible="False">
+                    <StackLayout.Triggers>
+                        <DataTrigger TargetType="StackLayout" Binding="{Binding ButtonType}" Value="{x:Static controllerManagement:ControllerButtonType.Stepper}">
+                            <Setter Property="IsVisible" Value="True"/>
+                        </DataTrigger>
+                        <DataTrigger TargetType="StackLayout" Binding="{Binding AxisType}" Value="{x:Static controllerManagement:ControllerAxisType.Stepper}">
+                            <Setter Property="IsVisible" Value="True"/>
+                        </DataTrigger>
+                    </StackLayout.Triggers>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="3*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Label Grid.Column="0" Text="{extensions:Translate StepperPercent}"/>
+                        <StackLayout Grid.Column="1" Orientation="Horizontal">
+                            <Slider Value="{Binding StepperPercent}" Minimum="-100" Maximum="100" HorizontalOptions="FillAndExpand" MinimumTrackColor="LightGray"/>
+                            <Label Text="{Binding StepperPercent}" WidthRequest="30" HorizontalOptions="End" HorizontalTextAlignment="End"/>
+                            <Label Text="%"/>
+                        </StackLayout>
+                    </Grid>
+
+                    <BoxView BackgroundColor="#E0E0E0" HeightRequest="1" VerticalOptions="Center" HorizontalOptions="Fill" Margin="5,8,5,8"/>
+                </StackLayout>
 
                 <!-- Axis dead zone percent -->
                 <StackLayout Orientation="Vertical" IsVisible="False">
