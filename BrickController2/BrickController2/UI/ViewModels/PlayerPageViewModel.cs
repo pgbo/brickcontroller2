@@ -1,6 +1,7 @@
 ﻿using BrickController2.CreationManagement;
 using BrickController2.DeviceManagement;
 using BrickController2.PlatformServices.GameController;
+using BrickController2.PlatformServices.Screen;
 using BrickController2.UI.Commands;
 using BrickController2.UI.Services.Dialog;
 using BrickController2.UI.Services.Navigation;
@@ -21,6 +22,7 @@ namespace BrickController2.UI.ViewModels
         private readonly IDialogService _dialogService;
         private readonly IGameControllerService _gameControllerService;
         private readonly IUIThreadService _uIThreadService;
+        private readonly IScreenService _screenService;
 
         private readonly IList<Device> _devices = new List<Device>();
         private readonly IList<Device> _buwizzDevices = new List<Device>();
@@ -38,6 +40,7 @@ namespace BrickController2.UI.ViewModels
         private bool _reconnect = false;
         private bool _isDisappearing = false;
         private CancellationTokenSource _disappearingTokenSource;
+        private float? _originalBrightness = null;
 
         public PlayerPageViewModel(
             INavigationService navigationService,
@@ -46,6 +49,7 @@ namespace BrickController2.UI.ViewModels
             IDialogService dialogService,
             IGameControllerService gameControllerService,
             IUIThreadService uIThreadService,
+            IScreenService screenService,
             NavigationParameters parameters)
             : base(navigationService, translationService)
         {
@@ -53,6 +57,7 @@ namespace BrickController2.UI.ViewModels
             _dialogService = dialogService;
             _gameControllerService = gameControllerService;
             _uIThreadService = uIThreadService;
+            _screenService = screenService;
 
             Creation = parameters.Get<Creation>("creation");
             CollectDevices();
@@ -80,6 +85,12 @@ namespace BrickController2.UI.ViewModels
             _disappearingTokenSource?.Cancel();
             _disappearingTokenSource = new CancellationTokenSource();
 
+            _originalBrightness = _screenService.Brightness;
+            if (_originalBrightness.HasValue)
+            {
+                _screenService.Brightness = _originalBrightness.Value / 4;
+            }
+
             if (_devices.Any(d => d.DeviceType != DeviceType.Infrared) && !_deviceManager.IsBluetoothOn)
             {
                 await _dialogService.ShowMessageBoxAsync(
@@ -102,6 +113,12 @@ namespace BrickController2.UI.ViewModels
             _isDisappearing = true;
 
             _gameControllerService.GameControllerEvent -= GameControllerEventHandler;
+
+            if (_originalBrightness.HasValue)
+            {
+                _screenService.Brightness = _originalBrightness.Value;
+                _originalBrightness = null;
+            }
 
             await DisconnectDevicesAsync();
         }

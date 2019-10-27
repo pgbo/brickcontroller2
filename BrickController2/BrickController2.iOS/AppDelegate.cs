@@ -3,6 +3,7 @@ using BrickController2.CreationManagement.DI;
 using BrickController2.Database.DI;
 using BrickController2.DeviceManagement.DI;
 using BrickController2.iOS.PlatformServices.DI;
+using BrickController2.iOS.PlatformServices.Screen;
 using BrickController2.iOS.UI.Services.DI;
 using BrickController2.UI.DI;
 using Foundation;
@@ -11,8 +12,10 @@ using UIKit;
 namespace BrickController2.iOS
 {
     [Register("AppDelegate")]
-    public partial class AppDelegate : global::Xamarin.Forms.Platform.iOS.FormsApplicationDelegate
+    public partial class AppDelegate : global::Xamarin.Forms.Platform.iOS.FormsApplicationDelegate, IUIGestureRecognizerDelegate
     {
+        private ScreenService _screenService;
+
         public override bool FinishedLaunching(UIApplication uiApp, NSDictionary options)
         {
             Xamarin.Forms.Forms.Init();
@@ -23,6 +26,11 @@ namespace BrickController2.iOS
             var container = InitDI();
             var app = container.Resolve<App>();
             LoadApplication(app);
+
+            _screenService = container.Resolve<ScreenService>();
+            var tapRecognizer = new UITapGestureRecognizer(Self, new ObjCRuntime.Selector("gestureRecognizer:shouldReceiveTouch:"));
+            tapRecognizer.Delegate = (IUIGestureRecognizerDelegate)Self;
+            uiApp.KeyWindow.AddGestureRecognizer(tapRecognizer);
 
             return base.FinishedLaunching(uiApp, options);
         }
@@ -35,6 +43,13 @@ namespace BrickController2.iOS
         public override void WillEnterForeground(UIApplication uiApplication)
         {
             base.WillEnterForeground(uiApplication);
+        }
+
+        [Export("gestureRecognizer:shouldReceiveTouch:")]
+        public bool ShouldReceiveTouch(UIGestureRecognizer gestureRecognizer, UITouch touch)
+        {
+            _screenService.OnTouchEvent();
+            return false;
         }
 
         private IContainer InitDI()

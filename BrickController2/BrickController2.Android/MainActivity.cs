@@ -14,6 +14,7 @@ using BrickController2.Droid.UI.Services.DI;
 using BrickController2.UI.DI;
 using Plugin.CurrentActivity;
 using Plugin.Permissions;
+using BrickController2.Droid.PlatformServices.Screen;
 
 namespace BrickController2.Droid
 {
@@ -26,6 +27,7 @@ namespace BrickController2.Droid
     public class MainActivity : Xamarin.Forms.Platform.Android.FormsAppCompatActivity
     {
         private GameControllerService _gameControllerService;
+        private ScreenService _screenService;
 
         #region Activity
 
@@ -44,6 +46,7 @@ namespace BrickController2.Droid
 
             var container = InitDI();
             _gameControllerService = container.Resolve<GameControllerService>();
+            _screenService = container.Resolve<ScreenService>();
 
             var app = container.Resolve<App>();
             LoadApplication(app);
@@ -62,6 +65,12 @@ namespace BrickController2.Droid
         public override bool OnGenericMotionEvent(MotionEvent e)
         {
             return _gameControllerService.OnGenericMotionEvent(e) || base.OnGenericMotionEvent(e);
+        }
+
+        public override bool OnTouchEvent(MotionEvent e)
+        {
+            _screenService.OnTouchEvent(e);
+            return base.OnTouchEvent(e);
         }
 
         public override void OnRequestPermissionsResult(int requestCode, string[] permissions, [GeneratedEnum] Permission[] grantResults)

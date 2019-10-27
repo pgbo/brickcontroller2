@@ -3,12 +3,14 @@ using BrickController2.iOS.PlatformServices.BluetoothLE;
 using BrickController2.iOS.PlatformServices.GameController;
 using BrickController2.iOS.PlatformServices.Infrared;
 using BrickController2.iOS.PlatformServices.Localization;
+using BrickController2.iOS.PlatformServices.Screen;
 using BrickController2.iOS.PlatformServices.Versioning;
 using BrickController2.PlatformServices.BluetoothLE;
 using BrickController2.PlatformServices.GameController;
 using BrickController2.PlatformServices.Infrared;
 using BrickController2.PlatformServices.Localization;
 using BrickController2.PlatformServices.Preferences;
+using BrickController2.PlatformServices.Screen;
 using BrickController2.PlatformServices.Versioning;
 
 namespace BrickController2.iOS.PlatformServices.DI
@@ -23,6 +25,7 @@ namespace BrickController2.iOS.PlatformServices.DI
             builder.RegisterType<BluetoothLEService>().As<IBluetoothLEService>().SingleInstance();
             builder.RegisterType<LocalizationService>().As<ILocalizationService>().SingleInstance();
             builder.RegisterType<Preferences.Preferences>().As<IPreferences>().SingleInstance();
+            builder.RegisterType<ScreenService>().AsSelf().As<IScreenService>().SingleInstance();
         }
     }
 }
