@@ -34,6 +34,7 @@ namespace BrickController2.UI.ViewModels
 
             Creation = parameters.Get<Creation>("creation");
 
+            ExportCreationCommand = new SafeCommand(async () => await ExportCreationAsync(), () => !_dialogService.IsDialogOpen);
             RenameCreationCommand = new SafeCommand(async () => await RenameCreationAsync());
             PlayCommand = new SafeCommand(async () => await PlayAsync());
             AddControllerProfileCommand = new SafeCommand(async () => await AddControllerProfileAsync());
@@ -43,6 +44,7 @@ namespace BrickController2.UI.ViewModels
 
         public Creation Creation { get; }
 
+        public ICommand ExportCreationCommand { get; }
         public ICommand RenameCreationCommand { get; }
         public ICommand PlayCommand { get; }
         public ICommand AddControllerProfileCommand { get; }
@@ -58,6 +60,11 @@ namespace BrickController2.UI.ViewModels
         public override void OnDisappearing()
         {
             _disappearingTokenSource.Cancel();
+        }
+
+        private async Task ExportCreationAsync()
+        {
+            await _dialogService.ShowMessageBoxAsync("Export Creation", "Soon...", "Ok", _disappearingTokenSource.Token);
         }
 
         private async Task RenameCreationAsync()

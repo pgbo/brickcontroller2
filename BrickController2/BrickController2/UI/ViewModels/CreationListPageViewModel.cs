@@ -34,6 +34,7 @@ namespace BrickController2.UI.ViewModels
             _deviceManager = deviceManager;
             _dialogService = dialogService;
 
+            ImportCreationCommand = new SafeCommand(async () => await ImportCreationAsync(), () => !_dialogService.IsDialogOpen);
             OpenSettingsPageCommand = new SafeCommand(async () => await navigationService.NavigateToAsync<SettingsPageViewModel>(), () => !_dialogService.IsDialogOpen);
             AddCreationCommand = new SafeCommand(async () => await AddCreationAsync());
             CreationTappedCommand = new SafeCommand<Creation>(async creation => await NavigationService.NavigateToAsync<CreationPageViewModel>(new NavigationParameters(("creation", creation))));
@@ -46,6 +47,7 @@ namespace BrickController2.UI.ViewModels
 
         public ObservableCollection<Creation> Creations => _creationManager.Creations;
 
+        public ICommand ImportCreationCommand { get; }
         public ICommand OpenSettingsPageCommand { get; }
         public ICommand AddCreationCommand { get; }
         public ICommand CreationTappedCommand { get; }
@@ -101,6 +103,11 @@ namespace BrickController2.UI.ViewModels
                     },
                     Translate("Loading"));
             }
+        }
+
+        private async Task ImportCreationAsync()
+        {
+            await _dialogService.ShowMessageBoxAsync("Import creation", "Soon...", "Ok", _disappearingTokenSource.Token);
         }
 
         private async Task AddCreationAsync()

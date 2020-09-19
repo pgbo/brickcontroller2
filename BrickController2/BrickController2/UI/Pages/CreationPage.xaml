@@ -15,6 +15,9 @@
     <NavigationPage.TitleView>
         <Grid HorizontalOptions="FillAndExpand">
             <Label Text="{extensions:Translate Creation}" TextColor="{DynamicResource NavigationBarItemColor}" FontSize="Medium" FontAttributes="Bold" HorizontalOptions="Start" VerticalOptions="Center"/>
+            <StackLayout Orientation="Horizontal" HorizontalOptions="End" Spacing="10" Margin="12,0">
+                <controls:ImageButton ImageSource="{extensions:ImageResource Source=ic_export.png}" Command="{Binding ExportCreationCommand}" Style="{StaticResource NavigationBarImageButtonStyle}"/>
+            </StackLayout>
         </Grid>
     </NavigationPage.TitleView>
 
