@@ -94,6 +94,7 @@
     <Compile Include="PlatformServices\BluetoothLE\Helper.cs" />
     <Compile Include="PlatformServices\BluetoothLE\ScanRecordProcessor.cs" />
     <Compile Include="PlatformServices\DI\PlatformServicesModule.cs" />
+    <Compile Include="PlatformServices\ExternalStorage\ExternalStorageService.cs" />
     <Compile Include="PlatformServices\GameController\GameControllerService.cs" />
     <Compile Include="PlatformServices\Infrared\InfraredService.cs" />
     <Compile Include="MainActivity.cs" />

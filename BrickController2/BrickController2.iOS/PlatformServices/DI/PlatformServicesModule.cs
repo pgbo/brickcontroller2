@@ -1,10 +1,12 @@
 ﻿using Autofac;
 using BrickController2.iOS.PlatformServices.BluetoothLE;
+using BrickController2.iOS.PlatformServices.ExternalStorage;
 using BrickController2.iOS.PlatformServices.GameController;
 using BrickController2.iOS.PlatformServices.Infrared;
 using BrickController2.iOS.PlatformServices.Localization;
 using BrickController2.iOS.PlatformServices.Versioning;
 using BrickController2.PlatformServices.BluetoothLE;
+using BrickController2.PlatformServices.ExternalStorage;
 using BrickController2.PlatformServices.GameController;
 using BrickController2.PlatformServices.Infrared;
 using BrickController2.PlatformServices.Localization;
@@ -21,6 +23,7 @@ namespace BrickController2.iOS.PlatformServices.DI
             builder.RegisterType<VersionService>().As<IVersionService>().SingleInstance();
             builder.RegisterType<BluetoothLEService>().As<IBluetoothLEService>().SingleInstance();
             builder.RegisterType<LocalizationService>().As<ILocalizationService>().SingleInstance();
+            builder.RegisterType<ExternalStorageService>().As<IExternalStorageService>().SingleInstance();
         }
     }
 }
