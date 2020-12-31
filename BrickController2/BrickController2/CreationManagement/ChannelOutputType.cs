@@ -2,8 +2,8 @@
 {
     public enum ChannelOutputType
     {
-        NormalMotor,
-        ServoMotor,
-        StepperMotor
+        NormalMotor = 0,
+        ServoMotor = 1,
+        StepperMotor = 2
     }
 }
