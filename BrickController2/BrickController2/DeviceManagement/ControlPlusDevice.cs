@@ -8,6 +8,18 @@ using System.Threading.Tasks;
 
 namespace BrickController2.DeviceManagement
 {
+    internal class ControlPlusPortDevice
+    {
+        public byte port;
+        public byte deviceType;
+
+        public ControlPlusPortDevice(byte port, byte deviceType)
+        {
+            this.port = port;
+            this.deviceType = deviceType;
+        }
+    }
+
     internal abstract class ControlPlusDevice : BluetoothDevice
     {
         private const int MAX_SEND_ATTEMPTS = 10;
@@ -37,6 +49,11 @@ namespace BrickController2.DeviceManagement
         private readonly int[] _relativePositions;
         private readonly bool[] _positionsUpdated;
         private readonly DateTime[] _positionUpdateTimes;
+
+        // FIXME: 临时加上测试 sensor 和 motor 的回调
+        // List of connected port devices
+        private List<ControlPlusPortDevice> _connectedPortDevices = new List<ControlPlusPortDevice>();
+        private static readonly bool activeNotifyPortDevice = true;
 
         private IGattCharacteristic _characteristic;
 
@@ -191,6 +208,8 @@ namespace BrickController2.DeviceManagement
 
                 case 0x04: // Hub attached I/O
                     DumpData("Hub attached I/O", data);
+                    // 监控 port 的插拔
+                    ProcessHubAttachedIOData(data);
                     break;
 
                 case 0x05: // Generic error messages
@@ -214,10 +233,15 @@ namespace BrickController2.DeviceManagement
                     break;
 
                 case 0x45: // Port value (single mode)
-                    DumpData("Port value (single)", data);
+                {
+                    var portId = data[3];
+                    //DumpData("Port value (single), portId:" + (int)portId, data, true);
+                    // 处理 port device数据回调
+                    ProcessPortDeviceNotifyMessage(data);
                     break;
-
+                }
                 case 0x46: // Port value (combined mode)
+                {
                     var portId = data[3];
                     var modeMask = data[5];
                     var dataIndex = 6;
@@ -265,7 +289,7 @@ namespace BrickController2.DeviceManagement
                     }
 
                     break;
-
+                }
                 case 0x47: // Port input format (Single mode)
                     DumpData("Port input format (single)", data);
                     break;
@@ -283,6 +307,15 @@ namespace BrickController2.DeviceManagement
         {
             //var s = BitConverter.ToString(data);
             //Console.WriteLine(header + " - " + s);
+        }
+
+        private void DumpData(string header, byte[] data, bool dump)
+        {
+            if (dump)
+            {
+                var s = BitConverter.ToString(data);
+                Console.WriteLine(header + " - " + s);
+            }
         }
 
         protected override async Task ProcessOutputsAsync(CancellationToken token)
@@ -324,6 +357,13 @@ namespace BrickController2.DeviceManagement
                     await RequestHubProperties(token);
                 }
 
+                // FIXME: 这里开启测试 port 设备的callback通知
+                //bool activatePortDevice = true;
+                //if (activatePortDevice)
+                //{
+                //    await SendActivatePortDeviceAsync(token);
+                //}
+
                 for (int channel = 0; channel < NumberOfChannels; channel++)
                 {
                     if (_channelOutputTypes[channel] == ChannelOutputType.ServoMotor)
@@ -335,6 +375,89 @@ namespace BrickController2.DeviceManagement
                 }
 
                 return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private byte GetDeviceTypeForPort(byte port)
+        {
+            var device = _connectedPortDevices.FirstOrDefault((ControlPlusPortDevice itm) => { return itm.port == port; });
+            if (device != null)
+            {
+                return device.port;
+            }
+            return (byte)ControlPlusPortDeviceType.UNKNOWNDEVICE;
+        }
+
+        private byte GetModeForPortDeviceType(byte deviceType)
+        {
+            switch (deviceType)
+            {
+                case (byte)ControlPlusPortDeviceType.SIMPLE_MEDIUM_LINEAR_MOTOR:
+                    return (byte)HubPropertyOperation.ENABLE_UPDATES_DOWNSTREAM;
+                case (byte)ControlPlusPortDeviceType.TRAIN_MOTOR:
+                    return (byte)HubPropertyOperation.ENABLE_UPDATES_DOWNSTREAM;
+                case (byte)ControlPlusPortDeviceType.MEDIUM_LINEAR_MOTOR:
+                    return (byte)HubPropertyOperation.ENABLE_UPDATES_DOWNSTREAM;
+                case (byte)ControlPlusPortDeviceType.MOVE_HUB_MEDIUM_LINEAR_MOTOR:
+                    return (byte)HubPropertyOperation.ENABLE_UPDATES_DOWNSTREAM;
+                case (byte)ControlPlusPortDeviceType.COLOR_DISTANCE_SENSOR:
+                    return 0x08;
+                case (byte)ControlPlusPortDeviceType.MOVE_HUB_TILT_SENSOR:
+                    return 0x00;
+                case (byte)ControlPlusPortDeviceType.TECHNIC_MEDIUM_ANGULAR_MOTOR:
+                    return (byte)HubPropertyOperation.ENABLE_UPDATES_DOWNSTREAM;
+                case (byte)ControlPlusPortDeviceType.TECHNIC_LARGE_ANGULAR_MOTOR:
+                    return (byte)HubPropertyOperation.ENABLE_UPDATES_DOWNSTREAM;
+                case (byte)ControlPlusPortDeviceType.TECHNIC_LARGE_LINEAR_MOTOR:
+                    return (byte)HubPropertyOperation.ENABLE_UPDATES_DOWNSTREAM;
+                case (byte)ControlPlusPortDeviceType.TECHNIC_XLARGE_LINEAR_MOTOR:
+                    return (byte)HubPropertyOperation.ENABLE_UPDATES_DOWNSTREAM;
+                case (byte)ControlPlusPortDeviceType.MARIO_HUB_GESTURE_SENSOR:
+                    return 0x01;
+                default:
+                    return 0x00;
+            }
+        }
+
+        private static byte GetModeForDeviceType(ChannelOutputType deviceType)
+        {
+            switch (deviceType)
+            {
+                case ChannelOutputType.NormalMotor:
+                    return 0x02;
+
+                case ChannelOutputType.ServoMotor:
+                    return 0x02;
+
+                case ChannelOutputType.StepperMotor:
+                    return 0x02;
+
+                default:
+                    return 0x00;
+            }
+        }
+
+        private async Task<bool> SendActivatePortDeviceAsync(byte port, CancellationToken token)
+        {
+            try
+            {
+                var result = true;
+                //for (int channel = 0; channel < NumberOfChannels; channel++)
+                //{
+
+                //}
+
+                byte mode = GetModeForPortDeviceType(GetDeviceTypeForPort(port));
+                var activateBuffer = new byte[] { 0x0a, 0x00, 0x41, port, mode, 0x01, 0x00, 0x00, 0x00, 0x01 };
+
+                result = result && await _bleDevice?.WriteNoResponseAsync(_characteristic, activateBuffer, token);
+                await Task.Delay(20);
+
+                return result;
             }
             catch
             {
@@ -757,6 +880,315 @@ namespace BrickController2.DeviceManagement
                 ProcessHubPropertyData(data);
             }
             catch { }
+        }
+
+        private void RegisterPortDevice(byte port, byte deviceType)
+        {
+            Console.WriteLine("RegisterPortDevice, port {0:D}, device type {1:X}", port, deviceType);
+            ControlPlusPortDevice device = new ControlPlusPortDevice(port, deviceType);
+            _connectedPortDevices.Add(device); 
+        }
+
+
+        private void DeregisterPortDevice(byte port)
+        {
+            Console.WriteLine("DeregisterPortDevice, port {0:D}", port);
+            _connectedPortDevices.RemoveAll((ControlPlusPortDevice item) => { return item.port == port; });
+        }
+
+        private void ProcessHubAttachedIOData(byte[] data)
+        {
+            var port = data[3];
+            bool isConnected = (data[4] == 1 || data[4] == 2) ? true : false;
+            if (isConnected)
+            {
+                Console.WriteLine("port {0:D} is connected with port device type {1:X}", port, data[5]);
+                RegisterPortDevice(port, data[5]);
+                if (activeNotifyPortDevice)
+                {
+                    // TODO: 异步处理？
+                    _ = SendActivatePortDeviceAsync(port, CancellationToken.None);
+                }
+            }
+            else
+            {
+                Console.WriteLine("port {0:D} is disconnected", port);
+                DeregisterPortDevice(port);
+            }
+        }
+
+        /**
+         * @brief Parse current value [mA] of a current sensor(电流传感器) message
+         * @param [in] pData The pointer to the received data
+         * @return current value in unit mA
+         */
+        private static double parseCurrentSensor(byte[] data)
+        {
+            int currentRaw = LegoinoCommon.ReadUInt16LE(data, 4);
+            double current = (double)currentRaw * LegoinoCommon.LPF2_CURRENT_MAX / LegoinoCommon.LPF2_CURRENT_MAX_RAW;
+            Console.WriteLine("current value: {0:D} [mA]", current);
+            return current;
+        }
+
+        /**
+         * @brief Parse Voltage value [V] of a voltage sensor message
+         * @param [in] pData The pointer to the received data
+         * @return voltage in unit volt
+         */
+        private static double parseVoltageSensor(byte[] data)
+        {
+            int voltageRaw = LegoinoCommon.ReadUInt16LE(data, 4);
+            double voltage = (double)voltageRaw * LegoinoCommon.LPF2_VOLTAGE_MAX / LegoinoCommon.LPF2_VOLTAGE_MAX_RAW;
+            Console.WriteLine("voltage value: {0:D} [V]", voltage);
+            return voltage;
+        }
+
+        /**
+         * @brief Parse rotation value [degrees] of a tacho motor
+         * @param [in] pData The pointer to the received data
+         * @return rotaton in unit degrees (+/-)
+         */
+        private static int parseTachoMotor(byte[] data)
+        {
+            int value = LegoinoCommon.ReadInt32LE(data, 4);
+            Console.WriteLine("rotation value: {0:D} [degrees]", value);
+            return value;
+        }
+
+        /**
+         * @brief Parse speed value of a duplo train hub
+         * @param [in] pData The pointer to the received data
+         * @return speed value
+         */
+        private static int parseSpeedometer(byte[] data)
+        {
+            int value = LegoinoCommon.ReadInt16LE(data, 4);
+            Console.WriteLine("speedometer value: {0:D}", value);
+            return value;
+        }
+
+        private static double parseDistance(byte[] data)
+        {
+            int partial = data[7];
+            double distance = (double)data[5];
+            if (partial > 0)
+            {
+                distance += 1.0 / partial;
+            }
+            distance = Math.Floor(distance * 25.4) - 20.0;
+            Console.WriteLine("distance : {0:D}", distance);
+            return distance;
+        }
+
+        private static int parseColor(byte[] data)
+        {
+            int color = data[4];
+            // fix mapping of sensor color data to lego color data
+            // this is only needed for green and purple
+            if (data[4] == 1 || data[4] == 5)
+            {
+                color = color + 1;
+            }
+            Console.WriteLine("color: {0} {1:D}", LegoinoCommon.ColorStringFromColor(color), color);
+            return color;
+        }
+
+        /**
+         * @brief Parse boost hub tilt sensor message (x axis)
+         * @param [in] pData The pointer to the received data
+         * @return Degrees of rotation/tilt around the x axis
+         */
+        private static int parseBoostTiltSensorX(byte[] data)
+        {
+            int value = LegoinoCommon.ReadInt8(data, 4);
+            Console.WriteLine("tilt x: {0:D}", value);
+            return value;
+        }
+
+        /**
+         * @brief Parse boost hub tilt sensor message (y axis)
+         * @param [in] pData The pointer to the received data
+         * @return Degrees of rotation/tilt around the y axis
+         */
+        private static int parseBoostTiltSensorY(byte[] data)
+        {
+            int value = LegoinoCommon.ReadInt8(data, 5);
+            Console.WriteLine("tilt y: {0:D}", value);
+            return value;
+        }
+
+        /**
+         * @brief Parse control plus hub tilt sensor message (x axis)
+         * @param [in] pData The pointer to the received data
+         * @return Degrees of rotation/tilt around the x axis
+         */
+        private static int parseControlPlusHubTiltSensorX(byte[] data)
+        {
+            int value = LegoinoCommon.ReadInt16LE(data, 4);
+            Console.WriteLine("tilt x: {0:D}", value);
+            return value;
+        }
+
+        /**
+         * @brief Parse control plus hub tilt sensor message (y axis)
+         * @param [in] pData The pointer to the received data
+         * @return Degrees of rotation/tilt around the y axis
+         */
+        private static int parseControlPlusHubTiltSensorY(byte[] data)
+        {
+            int value = LegoinoCommon.ReadInt16LE(data, 6);
+            Console.WriteLine("tilt y: {0:D}", value);
+            return value;
+        }
+
+        /**
+         * @brief Parse control plus hub tilt sensor message (z axis)
+         * @param [in] pData The pointer to the received data
+         * @return Degrees of rotation/tilt around the z axis
+         */
+        private static int parseControlPlusHubTiltSensorZ(byte[] data)
+        {
+            int value = LegoinoCommon.ReadInt16LE(data, 8);
+            Console.WriteLine("tilt z: {0:D}", value);
+            return value;
+        }
+
+        /**
+         * @brief Parse button state value of a button sensor
+         * @param [in] pData The pointer to the received data
+         * @return button state
+         */
+        private static ButtonState parseRemoteButton(byte[] data)
+        {
+            int buttonState = data[4];
+            Console.WriteLine("remote button state: {0:X}", buttonState);
+            return (ButtonState)buttonState;
+        }
+
+
+        /**
+         * @brief Parse Mario pant sensor 
+         * @param [in] pData The pointer to the received data
+         * @return Pant type
+         */
+        private static MarioPant parseMarioPant(byte[] data)
+        {
+            int value = LegoinoCommon.ReadInt8(data, 4);
+            Console.WriteLine("Mario Pant: {0:D}", value);
+            return (MarioPant)value;
+        }
+
+        /**
+         * @brief Parse Mario gesture sensor 
+         * @param [in] pData The pointer to the received data
+         * @return Gesture
+         */
+        private static MarioGesture parseMarioGesture(byte[] data)
+        {
+            int value = LegoinoCommon.ReadInt16LE(data, 4);
+            Console.WriteLine("Mario Gesture: {0:D}", value);
+            return (MarioGesture)value;
+        }
+
+        /**
+         * @brief Parse Mario barcode  sensor 
+         * @param [in] pData The pointer to the received data
+         * @return MarioBarcode
+         */
+        private static MarioBarcode parseMarioBarcode(byte[] data)
+        {
+            int value = LegoinoCommon.ReadInt16LE(data, 4);
+            Console.WriteLine("Mario Barcode: {0:D}", value);
+            return (MarioBarcode)value;
+        }
+
+        /**
+         * @brief Parse Mario color sensor 
+         * @param [in] pData The pointer to the received data
+         * @return MarioColor
+         */
+        private static MarioColor parseMarioColor(byte[] data)
+        {
+            int value = LegoinoCommon.ReadInt16LE(data, 6);
+            Console.WriteLine("Mario Color: {0:D}", value);
+            return (MarioColor)value;
+        }
+
+        private void ProcessPortDeviceNotifyMessage(byte[] data)
+        {
+            var port = data[3];
+            var device = _connectedPortDevices.FirstOrDefault((ControlPlusPortDevice itm) => itm.port == port);
+            if (device == null)
+                return;
+
+            byte deviceType = device.deviceType;
+
+
+            if (deviceType == (byte)ControlPlusPortDeviceType.CURRENT_SENSOR)
+            {
+                parseCurrentSensor(data);
+                return;
+            }
+            else if (deviceType == (byte)ControlPlusPortDeviceType.VOLTAGE_SENSOR)
+            {
+                parseVoltageSensor(data);
+                return;
+            }
+            else if (deviceType == (byte)ControlPlusPortDeviceType.MEDIUM_LINEAR_MOTOR || deviceType == (byte)ControlPlusPortDeviceType.MOVE_HUB_MEDIUM_LINEAR_MOTOR)
+            {
+                parseTachoMotor(data);
+                return;
+            }
+            else if (deviceType == (byte)ControlPlusPortDeviceType.DUPLO_TRAIN_BASE_SPEEDOMETER)
+            {
+                parseSpeedometer(data);
+                return;
+            }
+            else if (deviceType == (byte)ControlPlusPortDeviceType.DUPLO_TRAIN_BASE_COLOR_SENSOR)
+            {
+                parseColor(data);
+                return;
+            }
+            else if (deviceType == (byte)ControlPlusPortDeviceType.COLOR_DISTANCE_SENSOR)
+            {
+                parseDistance(data);
+                parseColor(data);
+                return;
+            }
+            else if (deviceType == (byte)ControlPlusPortDeviceType.MOVE_HUB_TILT_SENSOR)
+            {
+                parseBoostTiltSensorX(data);
+                parseBoostTiltSensorY(data);
+                return;
+            }
+            else if (deviceType == (byte)ControlPlusPortDeviceType.TECHNIC_MEDIUM_HUB_TILT_SENSOR)
+            {
+                parseControlPlusHubTiltSensorX(data);
+                parseControlPlusHubTiltSensorY(data);
+                parseControlPlusHubTiltSensorZ(data);
+                return;
+            }
+            else if (deviceType == (byte)ControlPlusPortDeviceType.REMOTE_CONTROL_BUTTON)
+            {
+                parseRemoteButton(data);
+                return;
+            }
+            else if (deviceType == (byte)ControlPlusPortDeviceType.MARIO_HUB_GESTURE_SENSOR)
+            {
+                parseMarioGesture(pData);
+                return;
+            }
+            else if (deviceType == (byte)ControlPlusPortDeviceType.MARIO_HUB_BARCODE_SENSOR)
+            {
+                parseMarioBarcode(pData);
+                parseMarioColor(pData);
+                return;
+            }
+            else if (deviceType == (byte)ControlPlusPortDeviceType.MARIO_HUB_PANT_SENSOR)
+            {
+                parseMarioPant(pData);
+                return;
+            }
         }
 
         private void ProcessHubPropertyData(byte[] data)

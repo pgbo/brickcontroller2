@@ -40,6 +40,7 @@ namespace BrickController2.Droid.PlatformServices.BluetoothLE
 
         public override void OnScanFailed([GeneratedEnum] ScanFailure errorCode)
         {
+            Console.WriteLine("OnScanFailed, errorcode:" + errorCode);
         }
     }
 }
